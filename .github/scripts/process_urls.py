@@ -55,11 +55,15 @@ def process_urls(input_urls='', regenerate_all=False):
 
 def main():
     parser = argparse.ArgumentParser(description="Process URLs for shortening")
-    parser.add_argument('urls', nargs='?', default='', help='Space-separated list of URLs to shorten')
+    # '*' 允许接受零个或多个输入，这些输入将作为列表传入
+    parser.add_argument('urls', nargs='*', default='', help='Space-separated list of URLs to shorten')
     parser.add_argument('--all', action='store_true', help='Regenerate all URLs')
     
     args = parser.parse_args()
-    process_urls(args.urls, args.all)
+    # 将 args.urls（现在是一个列表）直接传给 process_urls 函数
+    # 因为 process_urls 函数期望的是字符串，所以使用 ' '.join(args.urls)
+    input_urls = ' '.join(args.urls) if args.urls else ''
+    process_urls(input_urls, args.all)
 
 if __name__ == '__main__':
     main()
