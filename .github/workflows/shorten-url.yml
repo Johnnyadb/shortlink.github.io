@@ -1,0 +1,49 @@
+name: Shorten URLs with File Handling
+
+on:
+  workflow_dispatch:
+    inputs:
+      long_urls:
+        description: 'Space-separated list of long URLs to shorten'
+        required: false
+        default: ''
+      all:
+        description: 'Regenerate all URLs'
+        required: false
+        default: 'false'
+
+jobs:
+  process-urls:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        run: |
+          echo "pandas" > requirements.txt
+          pip install -r requirements.txt
+
+      - name: Process URLs
+        run: python .github/scripts/process_urls.py ${{ github.event.inputs.long_urls }} ${{ github.event.inputs.all }}
+
+      - name: Commit and push changes
+        run: |
+          # Enable detailed command tracing
+          set -x
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          # Check for changes
+          if [ -n "$(git status --porcelain urls.txt)" ]; then
+            git pull --rebase
+            git add .
+            git commit -m "Update URL mappings and files" || echo "No changes to commit"
+            git push
+          else
+            echo "No changes to commit."
+          fi
