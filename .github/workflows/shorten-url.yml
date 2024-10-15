@@ -30,7 +30,12 @@ jobs:
           pip install -r requirements.txt
 
       - name: Process URLs
-        run: python .github/scripts/process_urls.py ${{ github.event.inputs.long_urls }} ${{ github.event.inputs.all }}
+        run: |
+          if [ "${{ github.event.inputs.all }}" == "true" ]; then
+            python .github/scripts/process_urls.py ${{ github.event.inputs.long_urls }} --all
+          else
+            python .github/scripts/process_urls.py ${{ github.event.inputs.long_urls }}
+          fi
 
       - name: Commit and push changes
         run: |
@@ -39,7 +44,7 @@ jobs:
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           # Check for changes
-          if [ -n "$(git status --porcelain urls.txt)" ]; then
+          if [ -n "$(git status --porcelain)" ]; then
             git pull --rebase
             git add .
             git commit -m "Update URL mappings and files" || echo "No changes to commit"
