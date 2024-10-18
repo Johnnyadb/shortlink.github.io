@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import hashlib
 import argparse
+import json
 
 def shorten_url(long_url):
     return hashlib.sha256((long_url + '-sk').encode()).hexdigest()[11:23]
@@ -37,18 +38,18 @@ def process_urls(input_urls='', regenerate_all=False):
     # 生成短链接并更新s文件夹和_o.tsv文件（第2列）
     for index, row in df.iterrows():
         short_url = row['Short URL']
-        file_path = f'{s_dir}/{short_url}'
+        file_path = f'{s_dir}/{short_url}.json'
 
         # 检查短链接是否存在，以及对应的文件是否存在
         if pd.isna(short_url) or not os.path.exists(file_path):
             # 重新生成短链接
             short_url = shorten_url(row['Long URL'])
             df.at[index, 'Short URL'] = short_url
-            file_path = f'{s_dir}/{short_url}'  # 更新文件路径
+            file_path = f'{s_dir}/{short_url}.json'  # 更新文件路径
 
         # 将长链接写入对应的短链接文件
         with open(file_path, 'w') as file:
-            file.write(row['Long URL'])
+            json.dump({"l": row['Long URL']}, file)
 
     # 更新_o.tsv
     df.to_csv(tsv_path, sep='\t', index=False, header=False)
