@@ -45,7 +45,11 @@ jobs:
           git config --global user.name "GitHub Action"
           # Check for changes
           if [ -n "$(git status --porcelain)" ]; then
+            # Stash any unstaged changes to allow pull with rebase
+            git stash
             git pull --rebase
+            # Restore stashed changes
+            git stash pop
             git add .
             git commit -m "Update URL mappings and files" || echo "No changes to commit"
             git push
