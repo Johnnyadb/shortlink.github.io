@@ -1,11 +1,20 @@
 import os
 import pandas as pd
 import hashlib
+import base64
+import re
 import argparse
 import json
 
 def shorten_url(long_url):
-    return hashlib.sha256((long_url + '-sk').encode()).hexdigest()[11:23]
+    # 使用 sha256 生成哈希值
+    sha256_hash = hashlib.sha256((long_url + '-sk').encode()).digest()
+    # 使用 base64 编码，并将结果转换为字符串，去除尾部的 '=' 填充字符
+    base64_encoded = base64.urlsafe_b64encode(sha256_hash).decode('utf-8').rstrip('=')
+    # 只保留 a-z, A-Z, 0-9 的字符
+    filtered_chars = re.sub(r'[^a-zA-Z0-9]', '', base64_encoded)
+    # 返回最多前12个合法字符，但不强制12个
+    return filtered_chars[:12]
 
 def process_urls(input_urls='', regenerate_all=False):
     tsv_path = '_o.tsv'
