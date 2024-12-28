@@ -1,34 +1,63 @@
-name: Generate Redirect Pages
+name: Generate Redirects
 
 on:
   push:
+    branches:
+      - main
     paths:
-      - 's/*.json'
-      - '_o.tsv'
+      - 's/**'  # 当 s 目录下的文件发生变化时触发
+      - '.github/scripts/**'  # 当脚本发生变化时触发
+      - '!**.md'  # 忽略文档更新
+      - '!_o.tsv'  # 忽略 _o.tsv 的更新，因为它会由 process-urls 工作流处理
+  
+  workflow_dispatch:  # 允许手动触发
+    inputs:
+      reason:
+        description: '触发原因'
+        required: false
+        default: '手动触发生成重定向页面'
+  
+  workflow_run:  # 当 process-urls 工作流完成时触发
+    workflows: ["Process URLs"]
+    types:
+      - completed
+    branches:
+      - main
 
 jobs:
-  generate-redirects:
+  generate:
     runs-on: ubuntu-latest
+    
+    # 只在 process-urls 工作流成功时执行
+    if: |
+      github.event.workflow_run.conclusion == 'success' ||
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push'
+    
     steps:
-      - uses: actions/checkout@v2
-      
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-          
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pandas
-          
-      - name: Generate redirect pages
-        run: python .github/scripts/generate_redirects.py
+    - name: 检出代码
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # 获取完整历史以确保能正确处理文件
+    
+    - name: 设置 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    
+    - name: 生成重定向页面
+      run: |
+        python .github/scripts/generate_redirects.py
+    
+    - name: 提交更改
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add -A
+        git diff --staged --quiet || git commit -m "自动生成重定向页面 [skip ci]"
         
-      - name: Commit and push changes
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add .
-          git commit -m "Generate redirect pages" || echo "No changes to commit"
-          git push 
+    - name: 推送更改
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }} 

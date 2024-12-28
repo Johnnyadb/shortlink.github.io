@@ -1,0 +1,52 @@
+name: Process URLs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '_o.tsv'  # 当 _o.tsv 文件发生变化时触发
+  
+  workflow_dispatch:  # 允许手动触发
+    inputs:
+      reason:
+        description: '触发原因'
+        required: false
+        default: '手动触发处理URLs'
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: 设置 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+    
+    - name: 处理URLs
+      run: |
+        python .github/scripts/process_urls.py --all
+    
+    - name: 提交更改
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add -A
+        git diff --staged --quiet || git commit -m "自动处理URLs [skip process-urls]"
+        
+    - name: 推送更改
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }} 
