@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="referrer" content="no-referrer">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        // 统一重定向函数
+        function redirectTo(url) {
+            window.location.replace(url);
+        }
+
+        // 解析短码
+        function parseShortCode(path) {
+            if (!path || path === '/' || path.startsWith('/s/')) {
+                return '';
+            }
+            return path.replace(/^\/+|\/+$/g, '')
+                      .replace(/\/index\.html$/, '')
+                      .split('/')[0];
+        }
+
+        // 主重定向逻辑
+        async function redirect() {
+            try {
+                const shortCode = parseShortCode(window.location.pathname);
+                
+                if (!shortCode) {
+                    redirectTo('/');
+                    return;
+                }
+
+                const response = await fetch(`/s/${shortCode}.json`);
+                if (!response.ok) {
+                    redirectTo('/');
+                    return;
+                }
+
+                const data = await response.json();
+                if (data && data.l) {
+                    redirectTo(data.l);
+                } else {
+                    redirectTo('/');
+                }
+            } catch (error) {
+                redirectTo('/');
+            }
+        }
+
+        // 页面加载完成后执行重定向
+        window.onload = redirect;
+    </script>
+    <!-- 添加meta refresh作为后备方案，5秒后返回首页 -->
+    <meta http-equiv="refresh" content="5;url=/">
+</head>
+<body>
+    <noscript>
+        <meta http-equiv="refresh" content="0;url=/">
+    </noscript>
+</body>
+</html>
